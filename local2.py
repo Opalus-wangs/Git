@@ -22,7 +22,7 @@ with open(os.path.join(CIFAR_DIR,"data_batch_1"),'rb') as f:
 #32 * 32 = 1024 * 3(3 aisle) = 3072
 #RR-GG－BB＝３０７２
 #labels:标签
-#>[6 9]分别代表第7类和第10类
+#[6 9]分别代表第7类和第10类
 
 
 image_arr = data[b'data'][100]
