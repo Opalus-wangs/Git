@@ -1,6 +1,7 @@
 import _pickle as cPickle
 import numpy as np
 import os
+import tensorflow as tf
 
 CIFAR_DIR = ".\cifar-10-batches-py"
 print(os.listdir(CIFAR_DIR))
