@@ -19,10 +19,14 @@ class CifaData:
         all_labels = []
         for filename in filenames:
             data, labels = load_data(filename)
+            all_data.append(data)
+            all_labels.append(labels)
+            """
             for item, label in zip(data, labels):
                 if label in [0, 1]:
                     all_data.append(item)
                     all_labels.append(label)
+            """
         self._data = np.vstack(all_data)
         self._data = self._data / 127.5 - 1 #归一化处理
         self._labels = np.hstack(all_labels)
@@ -69,30 +73,51 @@ print(batch_labels)
 
 #先搭建tensorflow的计算图，然后再执行计算图
 x = tf.placeholder(tf.float32,[None,3072])#placeholder占位符（data） shape:[None,3072]
+# [None], eg:[0,6,5,3]
 y = tf.placeholder(tf.int64,[None])#只一个维度
 #minibatch梯度下降 None:不确定样本个数（应对batchsize的可变性）
 
-#w:shape (3072,1)
-w = tf.get_variable('w',[x.get_shape()[-1],1],
+#w:shape (3072,10)
+w = tf.get_variable('w',[x.get_shape()[-1],10],
                     initializer=tf.random_normal_initializer(0,1))#正态分布做初始化（均值为0，方差为1）
-#b:shape (1,)
-b = tf.get_variable('b',[1],
+#b:shape (10,)
+b = tf.get_variable('b',[10],
                     initializer=tf.constant_initializer(0.0))#初始化为常量0
-#[None,3072] * [3072,1] = [None, 1]
+#[None,3072] * [3072,10] = [None, 10]
 #矩阵乘法
 y_ = tf.matmul(x, w) + b
+# 平方差损失函数 mean square loss
+"""
+#  course:1+e^x
+# api:e^x / sum(e^x)
+#[{0.01,0.02,...,0.9,...},{}]
+p_y = tf.nn.softmax(y_)
+#5 -> [0,0,0,0,5,0,0,0,0,0]
+y_one_hot = tf.one_hot(y, 10, dtype=tf.float32)
+loss = tf.reduce_mean(tf.square(y_one_hot - p_y))
+"""
+#交叉熵损失函数
+loss = tf.losses.sparse_softmax_cross_entropy(labels=y, logits=y_)
+#y_ -> softmax
+#y = one_hot
+#loss = ylogy_
 
+"""
 #[None,1] 将y_值变为概率值
 p_y_1 = tf.nn.sigmoid(y_)
 #[None,1]
 y_reshaped = tf.reshape(y,(-1,1))
 y_reshaped_float = tf.cast(y_reshaped, tf.float32)
 loss = tf.reduce_mean(tf.square(y_reshaped_float - p_y_1))
+"""
 
 #bool
-predict = p_y_1 > 0.5
+#predict = p_y_1 > 0.5
+
+#indices
+predict = tf.argmax(y_, 1)
 #[1,0,1,1,1,0,0,0]
-correct_prediction = tf.equal(tf.cast(predict,tf.int64), y_reshaped)
+correct_prediction = tf.equal(predict, y)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction,tf.float64))#求平均
 
 #定义梯度下降的方法
@@ -102,7 +127,7 @@ with tf.name_scope('train_op'):
 #（执行计算图）先初始化变量
 init = tf.global_variables_initializer()
 batch_size = 20
-train_steps = 100000
+train_steps = 10000
 test_steps = 100
 
 with tf.Session() as sess:
